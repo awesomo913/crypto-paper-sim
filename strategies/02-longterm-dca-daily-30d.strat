@@ -1,0 +1,72 @@
+{
+ "nickname": "LongTermDCA-Daily-30d-1k",
+ "goal": "Dollar-cost average: buy each daily candle, $1000 USDT, real Binance candles (hold-style accumulation)",
+ "strategy-settings": {
+  "name": "dollarcostaverage",
+  "use-simultaneous-signal-processing": false,
+  "disable-usd-tracking": false
+ },
+ "funding-settings": {
+  "use-exchange-level-funding": false
+ },
+ "currency-settings": [
+  {
+   "exchange-name": "binance",
+   "asset": "spot",
+   "base": "BTC",
+   "quote": "USDT",
+   "spot-details": {
+    "initial-quote-funds": "1000"
+   },
+   "buy-side": {
+    "minimum-size": "0.0001",
+    "maximum-size": "2",
+    "maximum-total": "1000"
+   },
+   "sell-side": {
+    "minimum-size": "0.0001",
+    "maximum-size": "2",
+    "maximum-total": "1000"
+   },
+   "min-slippage-percent": "0",
+   "max-slippage-percent": "0.05",
+   "maker-fee-override": "0.0002",
+   "taker-fee-override": "0.0007",
+   "maximum-holdings-ratio": "0",
+   "skip-candle-volume-fitting": false,
+   "use-exchange-order-limits": true,
+   "use-exchange-pnl-calculation": false
+  }
+ ],
+ "data-settings": {
+  "interval": 86400000000000,
+  "data-type": "candle",
+  "verbose-exchange-requests": false,
+  "api-data": {
+   "start-date": "2026-03-27T00:00:00Z",
+   "end-date": "2026-04-27T00:00:00Z",
+   "inclusive-end-date": false
+  }
+ },
+ "portfolio-settings": {
+  "leverage": {
+   "can-use-leverage": false,
+   "maximum-orders-with-leverage-ratio": "0",
+   "maximum-leverage-rate": "0",
+   "maximum-collateral-leverage-rate": "0"
+  },
+  "buy-side": {
+   "minimum-size": "0.0001",
+   "maximum-size": "2",
+   "maximum-total": "1000"
+  },
+  "sell-side": {
+   "minimum-size": "0.0001",
+   "maximum-size": "2",
+   "maximum-total": "1000"
+  }
+ },
+ "statistic-settings": {
+  "risk-free-rate": "0.03"
+ }
+}
