@@ -9,6 +9,8 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
+from paper_sim.core import buy_all, buy_spend, rsi_last, sell_all
+
 # Same fee as our .strat overrides
 TAKER = 0.0007
 START = 1000.0
@@ -43,27 +45,6 @@ def load_csv(p: Path) -> list[Bar]:
             )
     return out
 
-
-def rsi(closes: list[float], period: int) -> float | None:
-    if len(closes) < period + 1:
-        return None
-    window = closes[-(period + 1) :]
-    gains = 0.0
-    losses = 0.0
-    for i in range(1, len(window)):
-        d = window[i] - window[i - 1]
-        if d > 0:
-            gains += d
-        else:
-            losses += -d
-    avg_g = gains / period
-    avg_l = losses / period
-    if avg_l == 0:
-        return 100.0
-    rs = avg_g / avg_l
-    return 100.0 - (100.0 / (1.0 + rs))
-
-
 def sim_aggressive_rsi(bars: list[Bar]) -> dict:
     """Fast RSI(5), tight 45/55 — aggressive: trade into/out of BTC on each signal."""
     usdt = START
@@ -75,19 +56,15 @@ def sim_aggressive_rsi(bars: list[Bar]) -> dict:
 
     for b in bars:
         closes.append(b.c)
-        r = rsi(closes, period)
+        r = rsi_last(closes, period)
         if r is None:
             continue
         if prev is not None:
             if prev >= lo and r < lo and usdt > 1.0:
-                q = (usdt * (1.0 - TAKER)) / b.c
-                btc += q
-                usdt = 0.0
+                usdt, btc = buy_all(usdt=usdt, btc=btc, price=b.c, fee=TAKER)
                 trades += 1
             elif prev <= hi and r > hi and btc > 0.0:
-                gross = btc * b.c
-                usdt = gross * (1.0 - TAKER)
-                btc = 0.0
+                usdt, btc = sell_all(usdt=usdt, btc=btc, price=b.c, fee=TAKER)
                 trades += 1
         prev = r
 
@@ -113,9 +90,7 @@ def sim_dca(bars: list[Bar]) -> dict:
         spend = min(per, usdt * 0.999)
         if spend <= 0:
             break
-        q = spend * (1.0 - TAKER) / b.c
-        btc += q
-        usdt -= spend
+        usdt, btc = buy_spend(usdt=usdt, btc=btc, price=b.c, fee=TAKER, spend=spend)
     last = bars[-1].c
     equity = usdt + btc * last
     return {
