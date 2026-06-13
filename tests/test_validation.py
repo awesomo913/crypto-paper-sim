@@ -31,6 +31,8 @@ class ValidationTests(unittest.TestCase):
     def test_sim_days_validation(self) -> None:
         with self.assertRaises(ValueError):
             sim30.positive_int("0", "days")
+        with self.assertRaises(ValueError):
+            sim30.positive_int("-1", "days")
 
 
 if __name__ == "__main__":

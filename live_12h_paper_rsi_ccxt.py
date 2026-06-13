@@ -135,7 +135,7 @@ def main() -> None:
     try:
         import ccxt
     except ImportError:
-        raise ValueError("ccxt library not found. Install with: pip install ccxt")
+        raise ImportError("ccxt library not found. Install with: pip install ccxt")
     ex = ccxt.binance({"enableRateLimit": True})
     end = time.time() + args.hours * 3600
     p = Paper(usdt=args.start_usdt)
@@ -178,6 +178,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except ValueError as exc:
+    except (ImportError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(2)
