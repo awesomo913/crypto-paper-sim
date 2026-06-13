@@ -71,7 +71,7 @@ Run (PowerShell):
 .\run_12h_gct_paper.ps1
 ```
 
-> These runner scripts currently contain a local `$base`/`$bt` path. Update that path to your own GoCryptoTrader `backtester` directory before running.
+> These runner scripts currently contain a local `$base`/`$bt` path. Update that path to your own GoCryptoTrader `backtester` directory before running (for example: `$base = "c:/path/to/gocryptotrader/backtester"`).
 
 ## `strategies/` folder
 
