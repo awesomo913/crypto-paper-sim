@@ -81,7 +81,10 @@ def main() -> None:
                 except ValueError as exc:
                     raise ValueError(f"Invalid close price on line {line_no} in {csv_path}") from exc
     if not closes:
-        raise ValueError(f"No candle data found in {csv_path}")
+        raise ValueError(
+            f"No candle data found in {csv_path}. "
+            "Verify the CSV exists and contains OHLCV rows with at least 6 columns."
+        )
 
     usdt, btc = args.start_usdt, 0.0
     trades = 0

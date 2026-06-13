@@ -45,14 +45,16 @@ def positive_int(value: str, name: str) -> int:
 
 
 def parse_symbol(value: str) -> str:
-    if not re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", value):
+    symbol = value.upper()
+    if not re.fullmatch(r"[A-Z0-9]+/[A-Z0-9]+", symbol):
         raise ValueError("symbol must use BASE/QUOTE format (example: BTC/USDT)")
-    return value.upper()
+    return symbol
 
 
 def parse_timeframe(value: str) -> str:
-    if not re.fullmatch(r"\d+[mhdwM]", value):
-        raise ValueError("timeframe must look like 1m, 5m, 1h, 1d, 1w, or 1M")
+    allowed = {"1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"}
+    if value not in allowed:
+        raise ValueError(f"timeframe must be one of: {', '.join(sorted(allowed))}")
     return value
 
 

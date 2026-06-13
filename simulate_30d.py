@@ -172,7 +172,10 @@ def main() -> None:
     if not all_bars:
         raise ValueError("No candles left after applying timestamp filters")
     if args.days > len(all_bars):
-        raise ValueError(f"Requested --days={args.days} but only {len(all_bars)} candles are available")
+        raise ValueError(
+            f"Requested --days={args.days} but only {len(all_bars)} candles are available. "
+            "Reduce --days or widen --start-ts/--end-ts filters."
+        )
     bars = all_bars[-args.days :]
 
     a = sim_aggressive_rsi(bars)
