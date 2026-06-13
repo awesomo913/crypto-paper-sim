@@ -83,7 +83,7 @@ def main() -> None:
     if not closes:
         raise ValueError(
             f"No candle data found in {csv_path}. "
-            "Verify the CSV exists and contains OHLCV rows with at least 6 columns."
+            "Verify it contains OHLCV rows with at least 6 columns."
         )
 
     usdt, btc = args.start_usdt, 0.0

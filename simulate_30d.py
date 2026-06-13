@@ -172,9 +172,12 @@ def main() -> None:
     if not all_bars:
         raise ValueError("No candles left after applying timestamp filters")
     if args.days > len(all_bars):
+        guidance = "Reduce --days."
+        if args.start_ts is not None or args.end_ts is not None:
+            guidance = "Reduce --days or widen --start-ts/--end-ts filters."
         raise ValueError(
             f"Requested --days={args.days} but only {len(all_bars)} candles are available. "
-            "Reduce --days or widen --start-ts/--end-ts filters."
+            f"{guidance}"
         )
     bars = all_bars[-args.days :]
 

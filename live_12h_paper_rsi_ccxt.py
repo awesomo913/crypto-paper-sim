@@ -135,7 +135,7 @@ def main() -> None:
     try:
         import ccxt
     except ImportError:
-        raise ValueError("Missing dependency: pip install ccxt")
+        raise ValueError("ccxt library not found. Install with: pip install ccxt")
     ex = ccxt.binance({"enableRateLimit": True})
     end = time.time() + args.hours * 3600
     p = Paper(usdt=args.start_usdt)
