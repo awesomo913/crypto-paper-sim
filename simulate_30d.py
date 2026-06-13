@@ -5,7 +5,9 @@ Does not use leverage; taker-fee 0.07% per trade (Binance spot-style).
 """
 from __future__ import annotations
 
+import argparse
 import csv
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,6 +15,30 @@ from pathlib import Path
 TAKER = 0.0007
 START = 1000.0
 DAYS = 30
+
+
+def positive_int(value: str, name: str) -> int:
+    try:
+        out = int(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+    if out <= 0:
+        raise ValueError(f"{name} must be > 0")
+    return out
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    root = Path(__file__).resolve().parent
+    default_csv = root.parent / "gocryptotrader" / "testdata" / "binance_BTCUSDT_24h_2019_01_01_2020_01_01.csv"
+    parser = argparse.ArgumentParser(description="Run 30-day offline paper simulation from historical CSV data.")
+    parser.add_argument("--csv-path", type=Path, default=default_csv)
+    parser.add_argument("--days", type=lambda v: positive_int(v, "days"), default=DAYS)
+    parser.add_argument("--start-ts", type=int, default=None, help="Optional start unix timestamp filter.")
+    parser.add_argument("--end-ts", type=int, default=None, help="Optional end unix timestamp filter.")
+    args = parser.parse_args(argv)
+    if args.start_ts is not None and args.end_ts is not None and args.start_ts > args.end_ts:
+        parser.error("--start-ts must be <= --end-ts")
+    return args
 
 
 @dataclass
@@ -28,19 +54,22 @@ class Bar:
 def load_csv(p: Path) -> list[Bar]:
     out: list[Bar] = []
     with p.open(newline="") as f:
-        for row in csv.reader(f):
+        for line_no, row in enumerate(csv.reader(f), start=1):
             if not row or len(row) < 6:
                 continue
-            out.append(
-                Bar(
-                    int(float(row[0])),
-                    float(row[1]),
-                    float(row[2]),
-                    float(row[3]),
-                    float(row[4]),
-                    float(row[5]),
+            try:
+                out.append(
+                    Bar(
+                        int(float(row[0])),
+                        float(row[1]),
+                        float(row[2]),
+                        float(row[3]),
+                        float(row[4]),
+                        float(row[5]),
+                    )
                 )
-            )
+            except ValueError as exc:
+                raise ValueError(f"Invalid CSV data on line {line_no} in {p}") from exc
     return out
 
 
@@ -128,22 +157,30 @@ def sim_dca(bars: list[Bar]) -> dict:
 
 
 def main() -> None:
-    root = Path(__file__).resolve().parent
-    gct = root.parent / "gocryptotrader" / "testdata" / "binance_BTCUSDT_24h_2019_01_01_2020_01_01.csv"
+    args = parse_args()
+    gct = args.csv_path
     if not gct.is_file():
         print(f"Missing CSV: {gct}")
-        print("Clone gocryptotrader so testdata/ exists, or set CSV path in script.")
+        print("Clone gocryptotrader so testdata/ exists, or pass --csv-path.")
         raise SystemExit(1)
 
     all_bars = load_csv(gct)
-    bars = all_bars[-DAYS:]
+    if args.start_ts is not None:
+        all_bars = [b for b in all_bars if b.ts >= args.start_ts]
+    if args.end_ts is not None:
+        all_bars = [b for b in all_bars if b.ts <= args.end_ts]
+    if not all_bars:
+        raise ValueError("No candles left after applying timestamp filters")
+    if args.days > len(all_bars):
+        raise ValueError(f"Requested --days={args.days} but only {len(all_bars)} candles are available")
+    bars = all_bars[-args.days :]
 
     a = sim_aggressive_rsi(bars)
     d = sim_dca(bars)
     first_ts, last_ts = bars[0].ts, bars[-1].ts
 
-    print("30-day window (last rows of bundled Binance BTCUSDT daily CSV)")
-    print(f"  From unix {first_ts} to {last_ts} ({DAYS} candles)")
+    print("Simulation window (last rows of bundled Binance BTCUSDT daily CSV)")
+    print(f"  From unix {first_ts} to {last_ts} ({len(bars)} candles)")
     print()
     for x in (a, d):
         print(x["name"])
@@ -154,4 +191,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        raise SystemExit(2)

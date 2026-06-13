@@ -5,7 +5,9 @@ Uses bundled Binance historical CSV (no network). Bars are daily — for 1m beha
 """
 from __future__ import annotations
 
+import argparse
 import csv
+import sys
 from pathlib import Path
 
 RSI_PERIOD = 3
@@ -13,6 +15,41 @@ RSI_LOW = 47.0
 RSI_HIGH = 53.0
 FEE = 0.0007
 START_USDT = 1000.0
+
+
+def positive_float(value: str, name: str) -> float:
+    try:
+        out = float(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+    if out <= 0:
+        raise ValueError(f"{name} must be > 0")
+    return out
+
+
+def positive_int(value: str, name: str) -> int:
+    try:
+        out = int(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+    if out <= 0:
+        raise ValueError(f"{name} must be > 0")
+    return out
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    root = Path(__file__).resolve().parent.parent / "gocryptotrader" / "testdata"
+    default_csv = root / "binance_BTCUSDT_24h_2019_01_01_2020_01_01.csv"
+    parser = argparse.ArgumentParser(description="Run offline RSI paper simulation using local CSV candles.")
+    parser.add_argument("--csv-path", type=Path, default=default_csv)
+    parser.add_argument("--rsi-period", type=lambda v: positive_int(v, "rsi-period"), default=RSI_PERIOD)
+    parser.add_argument("--rsi-low", type=lambda v: positive_float(v, "rsi-low"), default=RSI_LOW)
+    parser.add_argument("--rsi-high", type=lambda v: positive_float(v, "rsi-high"), default=RSI_HIGH)
+    parser.add_argument("--start-usdt", type=lambda v: positive_float(v, "start-usdt"), default=START_USDT)
+    args = parser.parse_args(argv)
+    if args.rsi_low >= args.rsi_high:
+        parser.error("--rsi-low must be less than --rsi-high")
+    return args
 
 
 def rsi_simple(closes: list[float], period: int) -> float | None:
@@ -31,28 +68,35 @@ def rsi_simple(closes: list[float], period: int) -> float | None:
 
 
 def main() -> None:
-    root = Path(__file__).resolve().parent.parent / "gocryptotrader" / "testdata"
-    csv_path = root / "binance_BTCUSDT_24h_2019_01_01_2020_01_01.csv"
+    args = parse_args()
+    csv_path = args.csv_path
+    if not csv_path.is_file():
+        raise ValueError(f"CSV file not found: {csv_path}")
     closes: list[float] = []
     with csv_path.open() as f:
-        for row in csv.reader(f):
+        for line_no, row in enumerate(csv.reader(f), start=1):
             if len(row) >= 6:
-                closes.append(float(row[5]))
+                try:
+                    closes.append(float(row[5]))
+                except ValueError as exc:
+                    raise ValueError(f"Invalid close price on line {line_no} in {csv_path}") from exc
+    if not closes:
+        raise ValueError(f"No candle data found in {csv_path}")
 
-    usdt, btc = START_USDT, 0.0
+    usdt, btc = args.start_usdt, 0.0
     trades = 0
     for i in range(len(closes)):
         window = closes[: i + 1]
-        r = rsi_simple(window, RSI_PERIOD)
+        r = rsi_simple(window, args.rsi_period)
         if r is None:
             continue
         price = closes[i]
-        if r <= RSI_LOW and usdt > 5.0:
+        if r <= args.rsi_low and usdt > 5.0:
             cost = usdt * 0.999
             btc += (cost * (1.0 - FEE)) / price
             usdt = 0.0
             trades += 1
-        elif r >= RSI_HIGH and btc > 0.0:
+        elif r >= args.rsi_high and btc > 0.0:
             gross = btc * price
             usdt = gross * (1.0 - FEE)
             btc = 0.0
@@ -61,8 +105,8 @@ def main() -> None:
     last = closes[-1]
     eq = usdt + btc * last
     print("Offline aggressive paper demo (GCT RSI rules; daily candles from bundled CSV)")
-    print(f"  RSI_PERIOD={RSI_PERIOD} RSI_LOW={RSI_LOW} RSI_HIGH={RSI_HIGH} fee={FEE}")
-    print(f"  Start ${START_USDT:.2f}  End ${eq:.2f}  ({(eq / START_USDT - 1) * 100:+.2f}%)")
+    print(f"  RSI_PERIOD={args.rsi_period} RSI_LOW={args.rsi_low} RSI_HIGH={args.rsi_high} fee={FEE}")
+    print(f"  Start ${args.start_usdt:.2f}  End ${eq:.2f}  ({(eq / args.start_usdt - 1) * 100:+.2f}%)")
     print(f"  Trades: {trades}")
     print()
     print("For live paper on real 1m market data, run when Binance is reachable:")
@@ -70,4 +114,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        raise SystemExit(2)
