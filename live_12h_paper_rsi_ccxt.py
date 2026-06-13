@@ -10,6 +10,9 @@ import os
 import sys
 import time
 from dataclasses import dataclass
+
+from paper_sim.core import buy_all, rsi_last, sell_all
+
 try:
     import ccxt
 except ImportError:
@@ -26,26 +29,6 @@ HOURS = float(os.environ.get("PAPER_TEST_HOURS", "12"))
 POLL_S = 15
 START_USDT = 1000.0
 
-
-def rsi_last(closes: list[float], period: int) -> float | None:
-    if len(closes) < period + 1:
-        return None
-    gains = 0.0
-    losses = 0.0
-    for i in range(-period, 0):
-        d = closes[i] - closes[i - 1]
-        if d > 0:
-            gains += d
-        else:
-            losses += -d
-    g = gains / period
-    l = losses / period
-    if l == 0:
-        return 100.0
-    rs = g / l
-    return 100.0 - (100.0 / (1.0 + rs))
-
-
 @dataclass
 class Paper:
     usdt: float = START_USDT
@@ -58,14 +41,10 @@ class Paper:
 
     def apply(self, price: float, r: float) -> None:
         if r <= RSI_LOW and self.usdt > 5.0:
-            cost = self.usdt * 0.999
-            self.btc += (cost * (1.0 - FEE)) / price
-            self.usdt = 0.0
+            self.usdt, self.btc = buy_all(usdt=self.usdt, btc=self.btc, price=price, fee=FEE, reserve=0.999)
             self.trades += 1
         elif r >= RSI_HIGH and self.btc > 0.0:
-            gross = self.btc * price
-            self.usdt = gross * (1.0 - FEE)
-            self.btc = 0.0
+            self.usdt, self.btc = sell_all(usdt=self.usdt, btc=self.btc, price=price, fee=FEE)
             self.trades += 1
 
 
