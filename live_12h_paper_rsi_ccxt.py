@@ -115,13 +115,13 @@ class Paper:
     def mark(self, price: float) -> float:
         return self.usdt + self.btc * price
 
-    def apply(self, price: float, r: float) -> None:
-        if r <= RSI_LOW and self.usdt > 5.0:
+    def apply(self, price: float, r: float, rsi_low: float, rsi_high: float) -> None:
+        if r <= rsi_low and self.usdt > 5.0:
             cost = self.usdt * 0.999
             self.btc += (cost * (1.0 - FEE)) / price
             self.usdt = 0.0
             self.trades += 1
-        elif r >= RSI_HIGH and self.btc > 0.0:
+        elif r >= rsi_high and self.btc > 0.0:
             gross = self.btc * price
             self.usdt = gross * (1.0 - FEE)
             self.btc = 0.0
@@ -162,16 +162,7 @@ def main() -> None:
             time.sleep(args.poll_seconds)
             continue
         price = float(c)
-        if r <= args.rsi_low and p.usdt > 5.0:
-            cost = p.usdt * 0.999
-            p.btc += (cost * (1.0 - FEE)) / price
-            p.usdt = 0.0
-            p.trades += 1
-        elif r >= args.rsi_high and p.btc > 0.0:
-            gross = p.btc * price
-            p.usdt = gross * (1.0 - FEE)
-            p.btc = 0.0
-            p.trades += 1
+        p.apply(price, r, args.rsi_low, args.rsi_high)
         print(
             f"equity=${p.mark(price):,.2f} usdt={p.usdt:.2f} btc={p.btc:.6f} "
             f"RSI={r:.2f} trades={p.trades}"

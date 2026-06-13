@@ -179,7 +179,7 @@ def main() -> None:
     d = sim_dca(bars)
     first_ts, last_ts = bars[0].ts, bars[-1].ts
 
-    print("Simulation window (last rows of bundled Binance BTCUSDT daily CSV)")
+    print(f"Simulation window from CSV: {gct}")
     print(f"  From unix {first_ts} to {last_ts} ({len(bars)} candles)")
     print()
     for x in (a, d):
