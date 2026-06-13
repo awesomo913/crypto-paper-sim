@@ -8,7 +8,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from paper_sim.core import buy_all, rsi_last, sell_all
+from paper_sim.core import buy_all_with_cost_factor, rsi_last, sell_all
 
 RSI_PERIOD = 3
 RSI_LOW = 47.0
@@ -35,7 +35,7 @@ def main() -> None:
             continue
         price = closes[i]
         if r <= RSI_LOW and usdt > 5.0:
-            usdt, btc = buy_all(usdt=usdt, btc=btc, price=price, fee=FEE, reserve=0.999)
+            usdt, btc = buy_all_with_cost_factor(usdt=usdt, btc=btc, price=price, fee=FEE, cost_factor=0.999)
             trades += 1
         elif r >= RSI_HIGH and btc > 0.0:
             usdt, btc = sell_all(usdt=usdt, btc=btc, price=price, fee=FEE)

@@ -11,7 +11,7 @@ import sys
 import time
 from dataclasses import dataclass
 
-from paper_sim.core import buy_all, rsi_last, sell_all
+from paper_sim.core import buy_all_with_cost_factor, rsi_last, sell_all
 
 try:
     import ccxt
@@ -41,7 +41,13 @@ class Paper:
 
     def apply(self, price: float, r: float) -> None:
         if r <= RSI_LOW and self.usdt > 5.0:
-            self.usdt, self.btc = buy_all(usdt=self.usdt, btc=self.btc, price=price, fee=FEE, reserve=0.999)
+            self.usdt, self.btc = buy_all_with_cost_factor(
+                usdt=self.usdt,
+                btc=self.btc,
+                price=price,
+                fee=FEE,
+                cost_factor=0.999,
+            )
             self.trades += 1
         elif r >= RSI_HIGH and self.btc > 0.0:
             self.usdt, self.btc = sell_all(usdt=self.usdt, btc=self.btc, price=price, fee=FEE)

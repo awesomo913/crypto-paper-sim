@@ -26,9 +26,20 @@ def buy_all(
     btc: float,
     price: float,
     fee: float,
-    reserve: float = 1.0,
 ) -> tuple[float, float]:
-    spend = usdt * reserve
+    btc += (usdt * (1.0 - fee)) / price
+    return 0.0, btc
+
+
+def buy_all_with_cost_factor(
+    *,
+    usdt: float,
+    btc: float,
+    price: float,
+    fee: float,
+    cost_factor: float,
+) -> tuple[float, float]:
+    spend = usdt * cost_factor
     btc += (spend * (1.0 - fee)) / price
     return 0.0, btc
 
@@ -43,4 +54,3 @@ def buy_spend(*, usdt: float, btc: float, price: float, fee: float, spend: float
     btc += (spend * (1.0 - fee)) / price
     usdt -= spend
     return usdt, btc
-
